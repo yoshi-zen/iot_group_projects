@@ -149,6 +149,62 @@ module dht11(
               end
             end
           end
+        S4:
+          begin
+            if (DHT_in == 1'b0 && counter < 8800)
+            begin
+              // 入力信号がLOWでかつ、8800usまで待つ
+              counter <= counter + 1;
+              state <= S4;
+            end else begin
+              if (DHT_in == 1'b0)
+              begin
+                // 8800us経過したにもかかわらず、まだ0のままであるとき、異常検知
+                error <= 1'b1;
+                counter <= 26'b00000000000000000000000000;
+                state <= STOP;
+              end else begin
+                // 8800us経過したら、状態をS5に遷移
+                counter <= 26'b00000000000000000000000000;
+                state <= S5;
+              end
+            end
+          end
+        S5:
+          begin
+            if (DHT_in == 1'b1 && counter < 8800)
+            begin
+              // 入力信号がHIGHでかつ、8800usまで待つ
+              counter <= counter + 1;
+              state <= S5;
+            end else begin
+              if (DHT_in == 1'b1)
+              begin
+                // 8800us経過したにもかかわらず、まだ1のままであるとき、異常検知
+                error <= 1'b1;
+                counter <= 26'b00000000000000000000000000;
+                state <= STOP;
+              end else begin
+                // 8800us経過したら、状態をS6に遷移
+                counter <= 26'b00000000000000000000000000;
+                error <= 1'b0;
+                index <= 6'b000000;  // 読み取りに備えてindexも初期化しておく
+                state <= S6;
+              end
+            end
+          end
+        S6:
+          begin
+            // 読み取り準備状態（可能か確認）
+            if (DHT_in == 1b'0)
+            begin
+              state <= S7;
+            end else begin
+              error <= 1'b1;
+              state <= STOP;
+              counter <= 26'b00000000000000000000000000;
+            end
+          end
         default: 
       endcase
     end
