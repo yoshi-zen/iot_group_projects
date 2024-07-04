@@ -1,15 +1,16 @@
 #!/bin/sh
 
-OUTPUT=$(/usr/lib/bin/sample)
-OUTPUT1=$(/usr/lib/bin/sample01)
+OUTPUT=$(/software/sample/sample)
+OUTPUT1=$(/software/sample/sample01)
+OUTPUT2=$(/software/sample/sample02)
 
 echo "Content-type: text/html"
 echo ""
 
 # ここでOUTPUTの値に基づいて背景画像を決定します
-if [ "$OUTPUT" >= "65" && "$OUTPUT" <= "70"]; then
+if [ "$OUTPUT2" >= "65" && "$OUTPUT2" <= "70"]; then
     BACKGROUND_IMAGE="/IoT_image/good.jpg"
-elif [ "$OUTPUT" >= "55" && "$OUTPUT" <= "80"]; then
+elif [ "$OUTPUT2" >= "55" && "$OUTPUT2" <= "80"]; then
     BACKGROUND_IMAGE="/IoT_image/soso.jpg"
 else
     BACKGROUND_IMAGE="/IoT_image/bad.jpg"
