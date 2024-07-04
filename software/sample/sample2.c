@@ -14,7 +14,7 @@ int main() {
     ans = 0.81*temperature+0.01*humidity*(0.99*temperature-14.3)+46.3;
 
     // 生成した乱数を出力する
-    printf("%d\n", ans);
+    printf("%lf\n", ans);
 
     return 0;
 }
