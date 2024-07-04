@@ -205,14 +205,91 @@ module dht11(
               counter <= 26'b00000000000000000000000000;
             end
           end
-        default: 
+        S7:
+          begin
+            // 「0」の読み取り状態
+            if (DHT_in == 1b'1)
+            begin
+              // 「1」が来たら次状態へ遷移
+              counter <= 26'b00000000000000000000000001;
+              state <= S8;
+            end else begin
+              if (counter < 3200000)
+              begin
+                // 32ms待っても信号変化がなかったら、エラーとして終了
+                counter <= counter + 1;
+              end else begin
+                error <= 1'b1;
+                state <= STOP;
+                counter <= 26'b00000000000000000000000000;
+              end
+            end
+          end
+        S8:
+          begin
+            // 「1」の読み取り状態
+            if (DHT_in == 1b'0)
+            begin
+              if (counter > 5000)
+              begin
+                // 閾値を50usとし、それより長かったら「1」、短かったら「0」のデータとして扱う
+                DHT_data_reg[index] <= 1b'1;
+              end else begin
+                DHT_data_reg[index] <= 1b'0;
+              end
+
+              if (index < 39)
+              begin
+                // 40回ぶん読み切っているか
+                counter <= 26'b00000000000000000000000000;
+                state <= S9;  // 「戻る」フェーズに
+              end else begin
+                error <= 1'b0;
+                state <= STOP;  // 正常終了
+              end
+            end else begin
+              counter <= counter + 1;
+              if (counter > 3200000)
+              begin
+                // あまりにも長い「1」の信号が来たら、エラーとして終了
+                error <= 1'b1;
+                state <= STOP;  // 異常終了
+              end
+            end
+          end
+        S9:
+          begin
+            index <= index + 1;
+            state <= S6;  // 「戻る」フェーズに
+          end
+        STOP:
+          begin
+            state <= STOP;
+            if (error == 1'b0)
+            begin
+              // 正常終了の場合
+              DHT_out <= 1'b1;  // 再びDHTピンをHIGHにする
+              wait_reg <= 1'b1;  // 待ちフラグ
+              counter <= 26'b00000000000000000000000000;  // カウンタリセット
+              DIR <= 1'b1;  // 出力方向にする
+              error <= 1'b0;  // エラーフラグをリセット
+              index <= 6'b000000;  // インデックスをリセット
+              state <= START;  // ステートをリセット
+            end else begin
+              // 異常終了の場合
+              if (counter <= 3200000)
+              begin
+                DHT_data_reg <= 40'b0000000000000000000000000000000000000000;  // データをリセット
+                counter <= counter + 1;
+                error <= 1'b1;
+                wait_reg <= 1'b1;
+                DIR <= 1'b0;
+              end else begin
+                error <= 1'b0;
+              end
+            end
+          end
       endcase
     end
   end
-
-
-
-
-
-
 endmodule
