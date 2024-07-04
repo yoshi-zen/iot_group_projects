@@ -7,12 +7,12 @@ echo "Content-type: text/html"
 echo ""
 
 # ここでOUTPUTの値に基づいて背景画像を決定します
-if [ "$OUTPUT" = "200" ]; then
-    BACKGROUND_IMAGE="/IoT_image/bad.jpg"
-elif [ "$OUTPUT" = "300" ]; then
+if [ "$OUTPUT" >= "65" && "$OUTPUT" <= "70"]; then
+    BACKGROUND_IMAGE="/IoT_image/good.jpg"
+elif [ "$OUTPUT" >= "55" && "$OUTPUT" <= "80"]; then
     BACKGROUND_IMAGE="/IoT_image/soso.jpg"
 else
-    BACKGROUND_IMAGE="/IoT_image/good.jpg"
+    BACKGROUND_IMAGE="/IoT_image/bad.jpg"
 fi
 
 echo "<html>"
