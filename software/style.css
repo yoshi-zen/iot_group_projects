@@ -1,0 +1,18 @@
+.field{
+
+    color: #ffffff;
+    font-size: 200px;
+    position: relative;
+}
+
+.box1{
+    position: absolute;
+    top: 130px;
+    left: 600px;
+}
+
+.box2{
+    position: absolute;
+    top: 350px;
+    left: 600px;
+}
