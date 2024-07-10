@@ -8,6 +8,7 @@ module dht11(
   output [7:0] hum_float,  // 湿度データ小数部分
   output [7:0] parity  // パリティビットデータ
 );
+
   reg DHT_out;
   reg DIR;  // データ方向を制御(0:入力, 1:出力)
   reg wait_reg;  // データの待ち状態を制御
@@ -73,8 +74,8 @@ module dht11(
 
   // 以下ステートマシン
   always @(posedge CLK)
-  begin
-    if (RST == 1b'1)
+  begin: FSM
+    if (RST == 1'b1)
     begin
       DHT_out <= 1'b1;
       counter <= 26'b00000000000000000000000000;  // カウンタを初期化
@@ -86,6 +87,7 @@ module dht11(
       case (state)
         START: 
           begin
+            $display("State: START, %d", counter);
             wait_reg <= 1'b1;
             DIR <= 1'b1;
             DHT_out <= 1'b1;
@@ -97,10 +99,11 @@ module dht11(
             DHT_out <= 1'b1;  // DHTピンをHIGHにする
             wait_reg <= 1'b1;
             error <= 1'b0;
-            if (counter < 1800000)
+            if (counter < 3000000)
             begin
-              counter <= counter + 1;   // 少なくとも20ms待つ
+				      counter <= counter + 1;   // 少なくとも20ms待つ
             end else begin
+              $display("State: S0, %d", counter);
               counter <= 26'b00000000000000000000000000;  // カウンタリセットし、状態をS1に遷移
               state <= S1;
             end
@@ -113,6 +116,7 @@ module dht11(
             begin
               counter <= counter + 1;   // 少なくとも20ms出力してもらう
             end else begin
+              $display("State: S1, %d", counter);
               counter <= 26'b00000000000000000000000000;  // カウンタリセットし、状態をS2に遷移
               state <= S2;
             end
@@ -124,6 +128,7 @@ module dht11(
             begin
               counter <= counter + 1;   // 少なくとも20us待つ
             end else begin
+              $display("State: S2, %d", counter);
               DIR <= 1'b0;  // DHTピンを入力状態にする!!
               state <= S3;
             end
@@ -136,6 +141,7 @@ module dht11(
               counter <= counter + 1;
               state <= S3;
             end else begin
+              $display("State: S3, %d", counter);
               if (DHT_in == 1'b1)
               begin
                 // 6000us経過したにもかかわらず、まだ1のままであるとき、異常検知
@@ -145,6 +151,7 @@ module dht11(
               end else begin
                 // 「0」を受信している時、状態をS4に遷移
                 counter <= 26'b00000000000000000000000000;
+                $display("received data from DHT11.");
                 state <= S4;
               end
             end
@@ -163,10 +170,12 @@ module dht11(
                 error <= 1'b1;
                 counter <= 26'b00000000000000000000000000;
                 state <= STOP;
+                $display("State: S4, err, %d", counter);
               end else begin
                 // 8800us経過したら、状態をS5に遷移
                 counter <= 26'b00000000000000000000000000;
                 state <= S5;
+                $display("State: S4, to S5, %d", counter);
               end
             end
           end
@@ -184,31 +193,36 @@ module dht11(
                 error <= 1'b1;
                 counter <= 26'b00000000000000000000000000;
                 state <= STOP;
+                $display("State: S5, err, %d", counter);
               end else begin
                 // 8800us経過したら、状態をS6に遷移
                 counter <= 26'b00000000000000000000000000;
                 error <= 1'b0;
                 index <= 6'b000000;  // 読み取りに備えてindexも初期化しておく
                 state <= S6;
+                $display("State: S5, to S6, %d", counter);
               end
             end
           end
         S6:
           begin
+				$display("DHT11_in: %d", DHT_in);
             // 読み取り準備状態（可能か確認）
-            if (DHT_in == 1b'0)
+            if (DHT_in == 1'b0)
             begin
+              $display("State: S6, to S7 %d", counter);
               state <= S7;
             end else begin
               error <= 1'b1;
               state <= STOP;
               counter <= 26'b00000000000000000000000000;
+              $display("State: S6, err, %d", counter);
             end
           end
         S7:
           begin
             // 「0」の読み取り状態
-            if (DHT_in == 1b'1)
+            if (DHT_in == 1'b1)
             begin
               // 「1」が来たら次状態へ遷移
               counter <= 26'b00000000000000000000000001;
@@ -219,6 +233,7 @@ module dht11(
                 // 32ms待っても信号変化がなかったら、エラーとして終了
                 counter <= counter + 1;
               end else begin
+                $display("State: S7, err, %d", counter);
                 error <= 1'b1;
                 state <= STOP;
                 counter <= 26'b00000000000000000000000000;
@@ -228,14 +243,16 @@ module dht11(
         S8:
           begin
             // 「1」の読み取り状態
-            if (DHT_in == 1b'0)
+            if (DHT_in == 1'b0)
             begin
               if (counter > 5000)
               begin
                 // 閾値を50usとし、それより長かったら「1」、短かったら「0」のデータとして扱う
-                DHT_data_reg[index] <= 1b'1;
+                DHT_data_reg[index] <= 1'b1;
+                $display("received 1");
               end else begin
-                DHT_data_reg[index] <= 1b'0;
+                DHT_data_reg[index] <= 1'b0;
+                $display("received 0");
               end
 
               if (index < 39)
@@ -246,6 +263,7 @@ module dht11(
               end else begin
                 error <= 1'b0;
                 state <= STOP;  // 正常終了
+                $display("State: S8, to STOP, %d", counter);
               end
             end else begin
               counter <= counter + 1;
