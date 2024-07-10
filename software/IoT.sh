@@ -1,7 +1,7 @@
 #!/bin/sh
 
 OUTPUT=$(/usr/lib/bin/sample)
-OUTPUT1=$(/usr/lib/bin/sample01)
+OUTPUT1=$(/usr/lib/sample02)
 OUTPUT2=$(/usr/lib/bin/sample01)
 
 echo "Content-type: text/html"
